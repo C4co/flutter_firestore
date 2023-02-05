@@ -14,9 +14,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final SchoolRepository _schoolRepository = SchoolRepository();
+  final filterController = TextEditingController();
   bool showFilter = false;
   String filterName = '';
-  final filterController = TextEditingController();
 
   @override
   void dispose() {
@@ -24,143 +24,217 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  Widget addNewSchool() {
+    return FloatingActionButton(
+      onPressed: () {
+        AppDialog.show(
+          context: context,
+          title: 'School',
+          content: 'Are you sure to create new school',
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await _schoolRepository.addSchool();
+
+                if (mounted) {
+                  AppSnackBar.show(
+                    message: "New school added",
+                    context: context,
+                  );
+                }
+              },
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+      child: const Icon(Icons.add),
+    );
+  }
+
+  Widget loadingPage() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Loading...')),
+      body: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+  }
+
+  Widget errorPage(AsyncSnapshot snapshot) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Error')),
+      body: Center(
+        child: Text(
+          snapshot.error.toString(),
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    );
+  }
+
+  Widget emptyListPage() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Flutter Firebase')),
+      floatingActionButton: addNewSchool(),
+      body: Center(
+        child: Text(
+          'No items',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    );
+  }
+
+  Widget listPage(
+    AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot,
+    BuildContext context,
+  ) {
+    List<School>? filteredDocs = snapshot.data!.docs
+        .map((doc) {
+          Map<String, dynamic> myDoc = {'id': doc.id};
+          myDoc.addAll(doc.data());
+          return School.fromJson(myDoc);
+        })
+        .where(
+          (School element) => element.name.toLowerCase().contains(filterName),
+        )
+        .toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: showFilter
+            ? TextFormField(
+                controller: filterController,
+                style: const TextStyle(fontSize: 16),
+                autofocus: true,
+                onChanged: (String value) {
+                  setState(() {
+                    filterName = value;
+                  });
+                },
+                onFieldSubmitted: (String value) {
+                  FocusScope.of(context).unfocus();
+                  filterController.clear();
+                  setState(() {
+                    filterName = '';
+                    filterController.clear();
+                    showFilter = false;
+                  });
+                },
+                decoration: const InputDecoration(
+                  border: UnderlineInputBorder(),
+                  hintText: 'Filter school by name',
+                  contentPadding: EdgeInsets.all(0),
+                ),
+              )
+            : const Text('Flutter Firestore'),
+        actions: [
+          IconButton(
+            onPressed: () {
+              setState(() {
+                filterName = '';
+                filterController.clear();
+                showFilter = !showFilter;
+              });
+            },
+            icon:
+                showFilter ? const Icon(Icons.close) : const Icon(Icons.search),
+          )
+        ],
+      ),
+      floatingActionButton: addNewSchool(),
+      body: ListView.separated(
+        itemBuilder: (BuildContext context, int index) {
+          School school = filteredDocs[index];
+
+          return ListTile(
+            onTap: () {},
+            onLongPress: () {
+              AppDialog.show(
+                context: context,
+                title: 'Delete ${school.id}',
+                content: 'Are you sure to delete this item?',
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+
+                      try {
+                        await _db.collection('schools').doc(school.id).delete();
+
+                        if (mounted) {
+                          AppSnackBar.show(
+                            message: 'Item deleted',
+                            context: context,
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          AppSnackBar.show(
+                            message: e.toString(),
+                            context: context,
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Yes'),
+                  )
+                ],
+              );
+            },
+            title: Text(school.name),
+            leading: const Icon(Icons.school),
+            iconColor: Theme.of(context).colorScheme.primary,
+            subtitle: Text(
+              '${school.address.streetName} - ${school.address.number} | ${school.address.district}',
+            ),
+          );
+        },
+        separatorBuilder: (context, index) => const Divider(height: 1),
+        itemCount: filteredDocs.length,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
       stream: _db.collection('schools').snapshots(),
-      builder: (context, snapshot) {
-        List<School>? docs = snapshot.data?.docs
-            .map((doc) {
-              return School.fromJson(doc.data());
-            })
-            .where((School element) =>
-                element.name.toLowerCase().contains(filterName))
-            .toList();
+      builder: (
+        context,
+        AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot,
+      ) {
+        bool hasData = snapshot.data != null &&
+            snapshot.hasData &&
+            snapshot.data!.docs.isNotEmpty;
 
-        if (snapshot.hasData) {
-          return Scaffold(
-            appBar: AppBar(
-              title: showFilter
-                  ? TextFormField(
-                      controller: filterController,
-                      style: const TextStyle(fontSize: 16),
-                      autofocus: true,
-                      onChanged: (String value) {
-                        setState(() {
-                          filterName = value;
-                        });
-                      },
-                      onFieldSubmitted: (String value) {
-                        FocusScope.of(context).unfocus();
-                        filterController.clear();
-                        setState(() {
-                          filterName = '';
-                          showFilter = false;
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        border: UnderlineInputBorder(),
-                        hintText: 'Filter school by name',
-                        contentPadding: EdgeInsets.all(0),
-                      ),
-                    )
-                  : const Text('Flutter Firestore'),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      showFilter = !showFilter;
-                    });
-                  },
-                  icon: showFilter
-                      ? const Icon(Icons.close)
-                      : const Icon(Icons.search),
-                )
-              ],
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                AppDialog.show(
-                  context: context,
-                  title: 'School',
-                  content: 'Are you sure to create new school',
-                  actions: [
-                    TextButton(
-                      onPressed: () async {
-                        await _schoolRepository.addSchool();
+        bool hasNoData = snapshot.data != null &&
+            snapshot.hasData &&
+            snapshot.data!.docs.isEmpty;
 
-                        if (mounted) {
-                          AppSnackBar.show(
-                            message: "New school added",
-                            context: context,
-                          );
-                          Navigator.pop(context);
-                        }
-                      },
-                      child: const Text('Yes'),
-                    ),
-                  ],
-                );
-              },
-              child: const Icon(Icons.add),
-            ),
-            body: ListView.separated(
-              itemBuilder: (BuildContext context, int index) {
-                School school = docs[index];
-
-                return ListTile(
-                  onTap: () {},
-                  onLongPress: () {
-                    AppDialog.show(
-                      context: context,
-                      title: 'Delete',
-                      content: 'Are you sure to delete this item?',
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Yes'),
-                        )
-                      ],
-                    );
-                  },
-                  title: Text(school.name),
-                  leading: const Icon(Icons.school),
-                  iconColor: Theme.of(context).colorScheme.primary,
-                  subtitle: Text(
-                    '${school.address.streetName} - ${school.address.number} | ${school.address.district}',
-                  ),
-                );
-              },
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemCount: docs!.length,
-            ),
-          );
+        if (hasData) {
+          return listPage(snapshot, context);
         }
 
+        // empty list
+        if (hasNoData) {
+          return emptyListPage();
+        }
+
+        // error
         if (snapshot.hasError) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(
-              child: Text(
-                'Something went wrong',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          );
+          return errorPage(snapshot);
         }
 
-        return Scaffold(
-          appBar: AppBar(title: const Text('Loading...')),
-          body: const Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(),
-            ),
-          ),
-        );
+        // loading
+        return loadingPage();
       },
     );
   }
