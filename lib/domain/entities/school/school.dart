@@ -5,6 +5,7 @@ part 'school.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class School {
+  String? id;
   String name;
   Address address;
   List<String> teachers = [];
@@ -12,6 +13,7 @@ class School {
   List<String> classes = [];
 
   School({
+    this.id,
     required this.name,
     required this.address,
   });
