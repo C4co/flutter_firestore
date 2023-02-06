@@ -92,6 +92,49 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  AppBar appTopbar(BuildContext context) {
+    return AppBar(
+      title: showFilter
+          ? TextFormField(
+              controller: filterController,
+              style: const TextStyle(fontSize: 16),
+              autofocus: true,
+              onChanged: (String value) {
+                setState(() {
+                  filterName = value;
+                });
+              },
+              onFieldSubmitted: (String value) {
+                FocusScope.of(context).unfocus();
+                filterController.clear();
+                setState(() {
+                  filterName = '';
+                  filterController.clear();
+                  showFilter = false;
+                });
+              },
+              decoration: const InputDecoration(
+                border: UnderlineInputBorder(),
+                hintText: 'Filter school by name',
+                contentPadding: EdgeInsets.all(0),
+              ),
+            )
+          : const Text('Flutter Firestore'),
+      actions: [
+        IconButton(
+          onPressed: () {
+            setState(() {
+              filterName = '';
+              filterController.clear();
+              showFilter = !showFilter;
+            });
+          },
+          icon: showFilter ? const Icon(Icons.close) : const Icon(Icons.search),
+        )
+      ],
+    );
+  }
+
   Widget listPage(
     AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot,
     BuildContext context,
@@ -108,47 +151,7 @@ class _HomePageState extends State<HomePage> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: showFilter
-            ? TextFormField(
-                controller: filterController,
-                style: const TextStyle(fontSize: 16),
-                autofocus: true,
-                onChanged: (String value) {
-                  setState(() {
-                    filterName = value;
-                  });
-                },
-                onFieldSubmitted: (String value) {
-                  FocusScope.of(context).unfocus();
-                  filterController.clear();
-                  setState(() {
-                    filterName = '';
-                    filterController.clear();
-                    showFilter = false;
-                  });
-                },
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
-                  hintText: 'Filter school by name',
-                  contentPadding: EdgeInsets.all(0),
-                ),
-              )
-            : const Text('Flutter Firestore'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                filterName = '';
-                filterController.clear();
-                showFilter = !showFilter;
-              });
-            },
-            icon:
-                showFilter ? const Icon(Icons.close) : const Icon(Icons.search),
-          )
-        ],
-      ),
+      appBar: appTopbar(context),
       floatingActionButton: addNewSchool(),
       body: ListView.separated(
         itemBuilder: (BuildContext context, int index) {
