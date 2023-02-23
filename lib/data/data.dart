@@ -1,1 +1,1 @@
-export './repository/school_repository.dart';
+export 'repository/person_repository.dart';

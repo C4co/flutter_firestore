@@ -7,17 +7,15 @@ part of 'person.dart';
 // **************************************************************************
 
 Person _$PersonFromJson(Map<String, dynamic> json) => Person(
+      id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
-      cpf: json['cpf'] as String,
-      birthDate: json['birthDate'] as int,
-      address: Address.fromJson(json['address'] as Map<String, dynamic>),
+      image: json['image'] as String,
     );
 
 Map<String, dynamic> _$PersonToJson(Person instance) => <String, dynamic>{
+      'id': instance.id,
       'name': instance.name,
       'email': instance.email,
-      'cpf': instance.cpf,
-      'birthDate': instance.birthDate,
-      'address': instance.address.toJson(),
+      'image': instance.image,
     };

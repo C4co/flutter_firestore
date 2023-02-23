@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '/views/views.dart';
+import '/routes/router.dart';
 import '/core/core.dart';
 
 class App extends StatelessWidget {
@@ -7,11 +7,11 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Flutter firestore',
       theme: mainTheme,
       debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+      routerConfig: router,
     );
   }
 }

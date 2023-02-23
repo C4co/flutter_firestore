@@ -1,22 +1,19 @@
 import 'package:json_annotation/json_annotation.dart';
-import '/domain/domain.dart';
 
 part 'person.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class Person {
-  String name;
-  String email;
-  String cpf;
-  int birthDate;
-  Address address;
+  final String id;
+  final String name;
+  final String email;
+  final String image;
 
   Person({
+    required this.id,
     required this.name,
     required this.email,
-    required this.cpf,
-    required this.birthDate,
-    required this.address,
+    required this.image,
   });
 
   factory Person.fromJson(Map<String, dynamic> json) => _$PersonFromJson(json);
